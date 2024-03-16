@@ -10,8 +10,6 @@ import (
 
 var wg sync.WaitGroup
 
-var mu sync.Mutex
-
 // Generator генерирует последовательность чисел 1,2,3 и т.д. и
 // отправляет их в канал ch. При этом после записи в канал для каждого числа
 // вызывается функция fn. Она служит для подсчёта количества и суммы
@@ -33,12 +31,12 @@ func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 
 // Worker читает число из канала in и пишет его в канал out.
 func Worker(in <-chan int64, out chan<- int64) {
-	defer wg.Done()
 	for {
 		v, ok := <-in
 		if !ok {
 			close(out)
 			return
+
 		}
 		out <- v
 		time.Sleep(1 * time.Millisecond)
@@ -48,6 +46,7 @@ func Worker(in <-chan int64, out chan<- int64) {
 func main() {
 	chIn := make(chan int64)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
 	// 3. Создание контекста
 	// ...
@@ -55,7 +54,7 @@ func main() {
 	// для проверки будем считать количество и сумму отправленных чисел
 	var inputSum int64   // сумма сгенерированных чисел
 	var inputCount int64 // количество сгенерированных чисел
-
+	var mu sync.Mutex
 	// генерируем числа, считая параллельно их количество и сумму
 	go Generator(ctx, chIn, func(i int64) {
 		mu.Lock()
@@ -63,9 +62,8 @@ func main() {
 		inputCount++
 		mu.Unlock()
 	})
-	defer cancel()
 
-	const NumOut = 5 // количество обрабатывающих горутин и каналов
+	const NumOut = 8 // количество обрабатывающих горутин и каналов
 	// outs — слайс каналов, куда будут записываться числа из chIn
 	outs := make([]chan int64, NumOut)
 	for i := 0; i < NumOut; i++ {
@@ -84,13 +82,10 @@ func main() {
 		wg.Add(1)
 		go func(idx int, ch chan int64) {
 			defer wg.Done()
-			num, ok := <-ch
-			if !ok {
-				close(ch)
-				return
+			for k := range ch {
+				chOut <- k     // Отправляем число в результирующий канал
+				amounts[idx]++ // Увеличиваем счетчик чисел для данного канала
 			}
-			chOut <- num   // Отправляем число в результирующий канал
-			amounts[idx]++ // Увеличиваем счетчик чисел для данного канала
 		}(i, out)
 	}
 
@@ -99,6 +94,7 @@ func main() {
 		wg.Wait()
 		// закрываем результирующий канал
 		close(chOut)
+
 	}()
 
 	var count int64 // количество чисел результирующего канала
