@@ -14,11 +14,11 @@ import (
 // вызывается функция fn. Она служит для подсчёта количества и суммы
 // сгенерированных чисел.
 func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
-	var i int64
+	var i int64 = 1
+	defer close(ch)
 	for {
 		select {
 		case <-ctx.Done():
-			close(ch)
 			return
 		default:
 			ch <- i
@@ -26,20 +26,15 @@ func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 			i++
 		}
 	}
-
 }
 
 // Worker читает число из канала in и пишет его в канал out.
 func Worker(in <-chan int64, out chan<- int64) {
 	defer close(out)
-	for {
-		v, ok := <-in
-		if !ok {
-			break
-		}
+	for v := range in {
 		out <- v
+		time.Sleep(1 * time.Millisecond)
 	}
-	time.Sleep(1 * time.Millisecond)
 }
 
 func main() {
