@@ -13,9 +13,6 @@ import (
 // вызывается функция fn. Она служит для подсчёта количества и суммы
 // сгенерированных чисел.
 func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
-	// 1. Функция Generator
-	// ...
-
 	defer close(ch)
 	num := int64(1)
 	for {
@@ -33,8 +30,6 @@ func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 
 // Worker читает число из канала in и пишет его в канал out.
 func Worker(in <-chan int64, out chan<- int64) {
-	// 2. Функция Worker
-	// ...
 	defer close(out)
 	for v := range in {
 		out <- v
@@ -46,7 +41,6 @@ func Worker(in <-chan int64, out chan<- int64) {
 func main() {
 	chIn := make(chan int64)
 
-	// 3. Создание контекста
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -76,8 +70,6 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	// 4. Собираем числа из каналов outs
-	// ...
 	for i := 0; i < NumOut; i++ {
 		wg.Add(1)
 		go func(in <-chan int64, i int64) {
@@ -88,20 +80,6 @@ func main() {
 			}
 		}(outs[i], int64(i))
 	}
-	// for i := 0; i < NumOut; i++ {
-	// 	wg.Add(1)
-	// 	go func() {
-	// 		defer wg.Done()
-	// 		for indx, v := range outs {
-	// 			fmt.Println(indx, "-channel")
-	// 			for resCh := range v {
-	// 				chOut <- resCh
-	// 				// amounts[i]++
-	// 			}
-	// 		}
-	// 	}()
-	// 	amounts[i]++
-	// }
 
 	go func() {
 		// ждём завершения работы всех горутин для outs
@@ -113,8 +91,6 @@ func main() {
 	var count int64 // количество чисел результирующего канала
 	var sum int64   // сумма чисел результирующего канала
 
-	// 5. Читаем числа из результирующего канала
-	// ...
 	for val := range chOut {
 		count++
 		sum += val
