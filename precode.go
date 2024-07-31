@@ -16,13 +16,13 @@ import (
 func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 	// 1. Функция Generator
 	var num int64 = 1
+	defer close(ch)
 	for {
 		select {
 		case ch <- num:
 			fn(num)
-			atomic.AddInt64(&num, 1)
+			num++
 		case <-ctx.Done():
-			close(ch)
 			return
 		}
 	}
@@ -31,13 +31,9 @@ func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 // Worker читает число из канала in и пишет его в канал out.
 func Worker(in <-chan int64, out chan<- int64) {
 	// 2. Функция Worker
-	for {
-		num, ok := <-in
-		if !ok {
-			close(out)
-			return
-		}
-		out <- num
+	defer close(out)
+	for v := range in {
+		out <- v
 		time.Sleep(1 * time.Millisecond)
 	}
 
@@ -79,7 +75,7 @@ func main() {
 	// 4. Собираем числа из каналов outs
 	for pos, number := range outs {
 		wg.Add(1)
-		go func(in <-chan int64, out chan<- int64, ct int) {
+		go func(in <-chan int64, ct int) {
 			defer wg.Done()
 			for {
 				num, ok := <-in
@@ -87,9 +83,9 @@ func main() {
 					return
 				}
 				amounts[ct]++
-				out <- num
+				chOut <- num
 			}
-		}(number, chOut, pos)
+		}(number, pos)
 	}
 
 	go func() {
@@ -104,8 +100,8 @@ func main() {
 
 	// 5. Читаем числа из результирующего канала
 	for v := range chOut {
-		atomic.AddInt64(&count, 1)
-		atomic.AddInt64(&sum, v)
+		count++
+		sum += v
 	}
 
 	fmt.Println("Количество чисел", inputCount, count)
