@@ -18,13 +18,13 @@ func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 	// ...
 	var i int64 = 1
 	for {
-		select{
-			case ch<-i:
-				fn(i)
-				i++
-			case <-ctx.Done():
-				close(ch)
-				return
+		select {
+		case ch <- i:
+			fn(i)
+			i++
+		case <-ctx.Done():
+			defer close(ch)
+			return
 		}
 	}
 }
@@ -33,11 +33,11 @@ func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 func Worker(in <-chan int64, out chan<- int64) {
 	// 2. Функция Worker
 	// ...
-	for v := range in{
+	for v := range in {
 		out <- v
-		time.Sleep(1*time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 	}
-	close(out)
+	defer close(out)
 
 }
 
@@ -76,13 +76,13 @@ func main() {
 	var wg sync.WaitGroup
 	// 4. Собираем числа из каналов outs
 	// ...
-	for i := 0; i < len(outs); i++{
+	for i := 0; i < len(outs); i++ {
 		wg.Add(1)
-		go func(in <-chan int64, i int64){
+		go func(in <-chan int64, i int64) {
 			defer wg.Done()
-			for v := range in{
+			for v := range in {
 				amounts[i]++
-				chOut <-v
+				chOut <- v
 			}
 		}(outs[i], int64(i))
 	}
@@ -99,7 +99,7 @@ func main() {
 
 	// 5. Читаем числа из результирующего канала
 	// ...
-	for v := range chOut{
+	for v := range chOut {
 		count++
 		sum += v
 	}
