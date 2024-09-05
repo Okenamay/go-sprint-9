@@ -50,8 +50,8 @@ func main() {
 	chIn := make(chan int64)
 
 	// 3. Создание контекста
-	ctx, cancel := context.WithCancel(context.Background()) // Создание контекста с возможностью отмены
-	defer cancel()                                          // Отменяем контекст в конце main
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second) // Создание контекста с возможностью отмены через 1 секунду
+	defer cancel()                                                          // Отменяем контекст в конце main
 
 	// для проверки будем считать количество и сумму отправленных чисел
 	var inputSum int64   // сумма сгенерированных чисел
