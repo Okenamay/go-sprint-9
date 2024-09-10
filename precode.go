@@ -18,12 +18,14 @@ func Generator(ctx context.Context, ch chan<- int64, fn func(i int64)) {
 	for {
 		select {
 		case <-ctx.Done():
+			close(ch)
 			return
 		case ch <- i:
 			fn(i)
 			i++
 		}
 	}
+
 }
 
 // Worker читает число из канала in, ждёт 1 миллисекунду,
@@ -34,7 +36,7 @@ func Worker(in <-chan int64, out chan<- int64) {
 		time.Sleep(time.Millisecond)
 		out <- i
 	}
-	close(out)
+	defer close(out)
 
 }
 
@@ -99,14 +101,13 @@ func main() {
 	// 5. Читаем числа из результирующего канала
 	// ...
 
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
+
 		for v := range chOut { // Read from chOut
 			count++
 			sum += v
 		}
-		wg.Wait()
+
 	}()
 
 	fmt.Println("Количество чисел", inputCount, count)
