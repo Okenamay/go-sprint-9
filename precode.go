@@ -51,7 +51,7 @@ func main() {
 	// для проверки будем считать количество и сумму отправленных чисел
 	var inputSum int64   // сумма сгенерированных чисел
 	var inputCount int64 // количество сгенерированных чисел
-    var mu sync.Mutex
+	var mu sync.Mutex
 
 	// генерируем числа, считая параллельно их количество и сумму
 	go Generator(ctx, chIn, func(i int64) {
@@ -86,7 +86,7 @@ func main() {
 				amounts[index]++
 				chOut <- v
 			}
-		}(outs[i],int64(i))
+		}(outs[i], int64(i))
 	}
 
 	go func() {
